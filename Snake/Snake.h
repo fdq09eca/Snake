@@ -3,6 +3,21 @@
 #include "resource.h"
 #include <vector>
 
+class Util {
+public:
+
+	static int getRandomInt(const int from, const int to) {
+		throw std::exception("not yet done. do it tomorrow.\n");
+		return -1;
+	}
+	static POINT getRandomPointInRect(RECT& r) {
+		int randX = getRandomInt(r.left, r.right);
+		int randY = getRandomInt(r.top, r.bottom);
+		POINT p{ randX, randY };
+		return p;
+	}
+};
+
 class Painter {
 
 public:
@@ -36,7 +51,8 @@ public:
 	}
 	void resetPos() { setPos(0, 0); }
 	void resetSize() { setSize(0); }
-	void reset() { 
+	
+	virtual void reset() { 
 		resetPos();
 		resetSize();
 	};
@@ -94,33 +110,43 @@ class Bait: GameObject {
 	bool  _is_placed = false;
 	COLORREF _color = RGB(0, 255, 0);
 
-
 public:
 	void draw(const HDC& hdc_) const { Painter::drawSquare(hdc_, _pos, _size, _color); }
+	
+	void reset() { 
+		_is_placed = false; 
+		_color = RGB(0, 255, 0); 
+	}
 };
 
 
 class Snake:GameObject
 {
 	std::vector<SnakeBody> _body;
+	size_t _init_size = 3;
 
 public:
-	Snake(const int x_, const int y_, const size_t init_size = 3) : GameObject(x_, y_) { 
-		if (init_size == 0) { throw std::exception("init_size must be > 0"); }
+	Snake(const int x_, const int y_) : GameObject(x_, y_) { 
+		if (_init_size == 0) { throw std::exception("init_size must be > 0"); }
 		_body.emplace_back(x_, y_); 
-		grow(init_size - 1);
+		grow(_init_size - 1);
 	}
 	
-	Snake(const POINT pos_, size_t init_size = 3) : Snake(pos_.x, pos_.y, init_size) { }
+	Snake(const POINT pos_) : Snake(pos_.x, pos_.y) { }
 
 	
 	const SnakeBody& getHead() const { return _body.front(); }
-	SnakeBody& getHead() { return getHead(); }
+	SnakeBody& getHead() { return getHead(); } // works?
 	
 	const SnakeBody& getTail() const { return _body.back(); }
 	SnakeBody& getTail() { return getTail(); }
 
-	
+	void reset(const POINT pos) {
+		GameObject::reset();
+		getHead().setPos(pos);
+		_body.erase(_body.begin() + _init_size, _body.begin() + _body.size() - 1);
+		
+	}
 
 	void move(const int x, const int y) {
 		SnakeBody& h = getHead();
@@ -134,7 +160,6 @@ public:
 			b.setPos(prevPos);
 		}
 	}
-
 	
 
 	void grow(const size_t n = 1) {
@@ -155,22 +180,30 @@ public:
 class Game {
 	Snake _snake;
 	Bait _bait;
-	
+	POINT _snake_init_pos;
 
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
 	COLORREF _snakeBodyColor = RGB(128, 128, 128); //grey body
+	
 public:
 	Game() : Game(0, 0) {};
 	Game(const POINT pos_) : Game(pos_.x, pos_.y) { }
-	Game(const int x_, const int y_) :_snake(x_, y_) {
-		placeBait(); 
-	}
+	Game(const int x_, const int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } { _bait.setPos(200, 200); }
 
+	void restart() {
+		_snake.reset(_snake_init_pos);
+		_bait.reset();
+		//placeBait();
+	}
 	
 
-	void placeBait() {
+	void placeBait(HWND hWnd) {
 		// place it randomly;
-		_bait.setPos(200, 200);
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		POINT randomPoint = Util::getRandomPointInRect(cr);
+		_bait.setPos(randomPoint);
+		_bait._is_placed = true;
 	}
 
 	void draw(const HDC& hdc_) const {
