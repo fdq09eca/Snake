@@ -80,7 +80,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SNAKE));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     //wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    wcex.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SNAKE);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -101,9 +101,9 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
-
+   // const int ScreenX = (GetSystemMetrics(SM_CXSCREEN) - MAPWIDTH) / 2;
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+      0, 0, 500, 500, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
