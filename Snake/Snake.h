@@ -7,9 +7,10 @@ class Util {
 public:
 
 	static int getRandomInt(const int from, const int to) {
-		throw std::exception("not yet done. do it tomorrow.\n");
-		return -1;
+		int dist = to - from + 1;
+		return from + (rand() % dist);
 	}
+	
 	static POINT getRandomPointInRect(RECT& r) {
 		int randX = getRandomInt(r.left, r.right);
 		int randY = getRandomInt(r.top, r.bottom);
@@ -181,6 +182,7 @@ class Game {
 	Snake _snake;
 	Bait _bait;
 	POINT _snake_init_pos;
+	//HWND hWnd;
 
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
 	COLORREF _snakeBodyColor = RGB(128, 128, 128); //grey body
@@ -188,12 +190,15 @@ class Game {
 public:
 	Game() : Game(0, 0) {};
 	Game(const POINT pos_) : Game(pos_.x, pos_.y) { }
-	Game(const int x_, const int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } { _bait.setPos(200, 200); }
+	Game(const int x_, const int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } { 
+		// placeBait() << should be this.
+		_bait.setPos(200, 200); 
+	}
 
 	void restart() {
 		_snake.reset(_snake_init_pos);
 		_bait.reset();
-		//placeBait();
+		//placeBait(); << should be this.
 	}
 	
 
