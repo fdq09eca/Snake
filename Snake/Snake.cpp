@@ -11,7 +11,7 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 Game g;
-
+//Snake& s = g._snake;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -101,15 +101,20 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
-   // const int ScreenX = (GetSystemMetrics(SM_CXSCREEN) - MAPWIDTH) / 2;
+   const int winWidth = 500;
+   const int winHeight = 500;
+   const int screenMidX = GetSystemMetrics(SM_CXSCREEN) / 2 - winWidth/2;
+   const int screenMidY = GetSystemMetrics(SM_CYSCREEN) / 2 - winHeight/2;
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      0, 0, 500, 500, nullptr, nullptr, hInstance, nullptr);
+       screenMidX, screenMidY, winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
       return FALSE;
    }
 
+   g = Game(hWnd, 100, 100); // should use pointer actually.
+   
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -147,6 +152,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_KEYDOWN: {
+        Snake& s = g.getSnake();
+        switch (wParam) {
+            case VK_UP: { s.onKeyUp(); } break;
+            case VK_DOWN: { s.onKeyDown(); } break;
+            case VK_LEFT: { s.onKeyLeft(); } break;
+            case VK_RIGHT: {s.onKeyRight(); } break;
+            default: break;
+        }
+        s.move();
+        //auto a = hWnd;
+        g.update();
+    } break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
