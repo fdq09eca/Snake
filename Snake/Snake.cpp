@@ -101,8 +101,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
-   const int winWidth = 500;
-   const int winHeight = 500;
+   const int winWidth = 645; // why.., i wanted a squre clientRect
+   const int winHeight = 630;
    const int screenMidX = GetSystemMetrics(SM_CXSCREEN) / 2 - winWidth/2;
    const int screenMidY = GetSystemMetrics(SM_CYSCREEN) / 2 - winHeight/2;
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
@@ -113,7 +113,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   g = Game(hWnd, 100, 100); // should use pointer actually.
+   g = Game(hWnd, 0, 0); // should use pointer actually.
    
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);

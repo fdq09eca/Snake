@@ -36,7 +36,7 @@ class GameObject {
 
 protected:
 	POINT _pos{ 0, 0 };
-	size_t _size = 0;
+	size_t _size = 30;
 
 public:
 
@@ -129,13 +129,13 @@ class Snake : GameObject
 {
 	friend class Game;
 	std::vector<SnakeBody> _body;
-	size_t _init_size = 3;
+	size_t _init_body_size = 3;
 	POINT _direction{0, -1}; // init go up 
 
 	void init(const int x_, const int y_) {
-		if (_init_size == 0) { throw std::exception("init_size must be > 0"); }
+		if (_init_body_size == 0) { throw std::exception("init_size must be > 0"); }
 		_body.emplace_back(x_, y_);
-		grow(_init_size - 1);
+		grow(_init_body_size - 1);
 		auto h = getHead();
 		POINT bodyPos = h.getPos();
 		
