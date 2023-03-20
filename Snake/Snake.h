@@ -106,8 +106,9 @@ public:
 	}
 
 	void move(const int dx_, const int dy_) {
-		_pos.x += dx_ * _size;
-		_pos.y += dy_ * _size;
+
+		_pos.x += static_cast<LONG>(dx_ * _size);
+		_pos.y += static_cast<LONG>(dy_ * _size);
 	}
 
 };
@@ -167,9 +168,12 @@ public:
 	void setSize() = delete;
 	const size_t& getSize() const { return _body.size(); };
 	size_t getSize() { return _body.size(); };
+
+	
 	
 
 	void setDirection(const int x_, const int y_) {
+		if (x_ == -_direction.x && y_ == -_direction.y) return; // no immidiate opposite
 		_direction.x = x_;
 		_direction.y = y_;
 	}
@@ -185,7 +189,7 @@ public:
 		SnakeBody& h = getHead();
 		
 		// body follow
-		for (int i = _body.size() - 1; i > 0; i--) {
+		for (size_t i = _body.size() - 1; i > 0; i--) {
 			auto& r = _body[i];
 			auto & l = _body[i - 1];
 			r.setPos(l.getPos());			
@@ -242,6 +246,7 @@ public:
 	}
 
 	void update() {
+		_snake.move();
 		if (_snake.isCollided(_bait)) {
 			_snake.grow(1);
 			placeBait();
@@ -282,10 +287,10 @@ public:
 		GetClientRect(hWnd, &cr);
 		POINT randomPoint{ 0, 0 };
 		
-		cr.left += bait_._size;
-		cr.top += bait_._size;
-		cr.right -= bait_._size;
-		cr.bottom -= bait_._size;
+		cr.left += static_cast<int>(bait_._size);
+		cr.top += static_cast<int>(bait_._size);
+		cr.right -= static_cast<int>(bait_._size);
+		cr.bottom -= static_cast<int>(bait_._size);
 		
 		while (true) {
 			randomPoint = Util::getRandomPointInRect(cr);
