@@ -2,6 +2,8 @@
 
 #include "resource.h"
 #include <vector>
+#include <cassert>
+
 
 class Util {
 public:
@@ -26,7 +28,7 @@ public:
 	{
 		SelectObject(hdc_, GetStockObject(DC_BRUSH));
 		SetDCBrushColor(hdc_, color);
-		Rectangle(hdc_, pos_.x, pos_.y, pos_.x + size_, pos_.y + size_);
+		Rectangle(hdc_, pos_.x, pos_.y, pos_.x + static_cast<int>(size_), pos_.y + static_cast<int>(size_));
 	}
 
 };
@@ -39,9 +41,8 @@ protected:
 	size_t _size = 30;
 
 public:
-
-	GameObject() : GameObject(0, 0) {}
-	GameObject(const int x, const int y, const size_t size_ = 30)
+	//GameObject() = delete;
+	GameObject(int x = 0, int y = 0, size_t size_ = 30)
 	{
 		_pos.x = x;
 		_pos.y = y;
@@ -60,7 +61,8 @@ public:
 	
 	const POINT& getPos() const { return _pos; }
 	POINT getPos() { return _pos; }
-	const POINT getNextPos(const int x, const int y) const {
+	
+	POINT getNextPos(const int x, const int y) const {
 		POINT p = getPos();
 		p.x += x;
 		p.y += y;
@@ -69,43 +71,45 @@ public:
 	
 	void setPos(const int x_, const int y_) { _pos.x = x_; _pos.y = y_; }
 	void setPos(const POINT pos_) { setPos(pos_.x, pos_.y); }
-
-	const size_t& getSize() const { return _size; };
-	size_t getSize() { return _size; };
+	
+	
+	size_t getSize() const 			{ return _size; };
 	void setSize(const size_t size) { _size = size; };
 
-	const RECT hitBox() const {
-		RECT r{ _pos.x, _pos.y, _pos.x + _size, _pos.y + _size};
+	RECT hitBox() const {
+		RECT r{ _pos.x, _pos.y, _pos.x + static_cast<LONG>(_size), _pos.y + static_cast<LONG>(_size)};
 		return r;
 	}
 
-	const bool isCollided(const GameObject& other) const {
+	bool isCollided(const GameObject& other) const { 
 		RECT t;
 		RECT thisBox = hitBox();
 		RECT otherBox = other.hitBox();
-		return IntersectRect(&t, &thisBox, &otherBox) > 0;
+		return IntersectRect(&t, &thisBox, &otherBox) != 0;
 	}
+
 };
+
 
 class SnakeBody : GameObject {
 	friend class Snake;
 	friend class Game;
 
 public:	
-	SnakeBody(const int x_, const int y_, const size_t size_ = 30) : GameObject(x_, y_, size_) { }
-	SnakeBody(const POINT pos_, const size_t size_ = 30) : SnakeBody(pos_.x, pos_.y, size_) {}
-
+	SnakeBody(int x_, int y_, size_t size_ = 30) : GameObject(x_, y_, size_) { }
+	SnakeBody(const POINT& pos_, size_t size_ = 30) : SnakeBody(pos_.x, pos_.y, size_) { }
+	
 	~SnakeBody(){	
 		printf("SnakeBody dtor: pos[x: %d, y: %d]", _pos.x, _pos.y);
 		reset();
 	}
 	
 	
-	void draw(const HDC& hdc_, const COLORREF& color_) const { 
+	void draw(HDC hdc_, COLORREF color_) const { 
 		Painter::drawSquare(hdc_, _pos, _size, color_); 
 	}
 
-	void move(const int dx_, const int dy_) {
+	void move(int dx_, int dy_) {
 
 		_pos.x += static_cast<LONG>(dx_ * _size);
 		_pos.y += static_cast<LONG>(dy_ * _size);
@@ -113,12 +117,16 @@ public:
 
 };
 
+//enum class mycolor {
+//	GREEN = RGB(0 255, 0);
+//};
+
 class Bait: GameObject {
 	friend class Game;
 	COLORREF _color = RGB(0, 255, 0);
 
 public:
-	void draw(const HDC& hdc_) const { Painter::drawSquare(hdc_, _pos, _size, _color); }
+	void draw(const HDC hdc_) const { Painter::drawSquare(hdc_, _pos, _size, _color); }
 	
 	void reset() { 
 		_color = RGB(0, 255, 0); 
@@ -132,32 +140,28 @@ class Snake : GameObject
 	std::vector<SnakeBody> _body;
 	size_t _init_body_size = 3;
 	POINT _direction{0, -1}; // init go up 
+	size_t _speed = 100;
 
 	void init(const int x_, const int y_) {
 		if (_init_body_size == 0) { throw std::exception("init_size must be > 0"); }
 		_body.emplace_back(x_, y_);
 		grow(_init_body_size - 1);
-		auto h = getHead();
+		const auto& h = getHead();
 		POINT bodyPos = h.getPos();
-		
-		/*for (int i = 1; i < getSize(); i++) {
-			auto dy = h.getSize() * i;
-			bodyPos.y = dy;
-			_body[i].setPos(bodyPos);
-		}*/
 	}
 
 	void clear_body() { _body.clear(); }
 	
 public:
-	Snake(const int x_, const int y_) : GameObject(x_, y_) {  init(x_, y_); }
+	
+	Snake(int x_ = 0, int y_ = 0) : GameObject(x_, y_) {  init(x_, y_); }
 	Snake(const POINT pos_) : Snake(pos_.x, pos_.y) { }
 
-	const SnakeBody& getHead() const { return _body.front(); }
-	SnakeBody& getHead() { return _body.front(); }
+	const	SnakeBody& getHead() const	{ return _body.front(); }
+			SnakeBody& getHead()		{ return _body.front(); }
 	
-	const SnakeBody& getTail() const { return _body.back(); }
-	SnakeBody& getTail() { return _body.back(); }
+	const	SnakeBody& getTail() const	{ return _body.back(); }
+			SnakeBody& getTail()		{ return _body.back(); }
 
 	void reset(const POINT pos_) {
 		GameObject::reset();
@@ -165,12 +169,11 @@ public:
 		init(pos_.x, pos_.y);
 	}
 
-	void setSize() = delete;
-	const size_t& getSize() const { return _body.size(); };
-	size_t getSize() { return _body.size(); };
+	size_t getSpeed() { return _speed; }
 
-	
-	
+	void setSize() = delete;
+	size_t getSize() const { return _body.size(); };
+
 
 	void setDirection(const int x_, const int y_) {
 		if (x_ == -_direction.x && y_ == -_direction.y) return; // no immidiate opposite
@@ -190,9 +193,9 @@ public:
 		
 		// body follow
 		for (size_t i = _body.size() - 1; i > 0; i--) {
-			auto& r = _body[i];
-			auto & l = _body[i - 1];
-			r.setPos(l.getPos());			
+			auto& dst = _body[i];
+			const auto & src = _body[i - 1];
+			dst.setPos(src.getPos());			
 		}
 		h.move(_direction.x, _direction.y);
 	}
@@ -213,48 +216,59 @@ public:
 		
 	}
 
-	void onKeyUp() { setDirection(0, -1); }
-	void onKeyDown() { setDirection(0, 1); }
-	void onKeyLeft() { setDirection(-1, 0); }
-	void onKeyRight() { setDirection(1, 0); }
+	void onKeyUp()		{ setDirection( 0, -1); }
+	void onKeyDown()	{ setDirection( 0,  1); }
+	void onKeyLeft()	{ setDirection(-1,  0); }
+	void onKeyRight()	{ setDirection( 1,  0); }
 };
 
 class Game {
+	POINT _snake_init_pos{0, 0};
 	Snake _snake;
 	Bait _bait;
-	POINT _snake_init_pos;
-	HWND hWnd;
+	HWND hWnd = NULL;
 
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
 	COLORREF _snakeBodyColor = RGB(128, 128, 128); //grey body
 	
 public:
-	Game(const int x_, const int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } {}
-	Game() : Game(0, 0) {};
-	Game(const POINT pos_) : Game(pos_.x, pos_.y) { }
-	Game(const HWND& hWnd_, const int x_, const int y_) : Game(x_, y_) {
-		hWnd = hWnd_;
-		placeBait();
-	};
+	Game(int x_, int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } {}
+	Game() = default;
+	Game(const POINT& pos_) : Game(pos_.x, pos_.y) { }
+
+	void setHwnd(HWND hWnd_) { hWnd = hWnd_;}
 
 	Snake& getSnake() { return _snake; }
 
+	void setHWnd(HWND hWnd_) { hWnd = hWnd_;}
+
 	void restart() {
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		_snake_init_pos.x = (cr.right - cr.left) / 2; 
+		_snake_init_pos.y = (cr.bottom - cr.top) / 2; 
+
+		if (!_snake.getSize()) return;
+		int r = static_cast<int>(_snake.getHead().getSize());
+		int rx = _snake_init_pos.x % r;
+		int ry = _snake_init_pos.y % r;
+		_snake_init_pos.x -= rx;
+		_snake_init_pos.y -= ry;
+		
 		_snake.reset(_snake_init_pos);
-		_bait.reset();
-		//placeBait(); << should be this.
+		placeBait();
 	}
 
 	void update() {
 		_snake.move();
-		if (_snake.isCollided(_bait)) {
+		if (_snake.getHead().isCollided(_bait)) {
 			_snake.grow(1);
 			placeBait();
 		}
 		InvalidateRect(hWnd, nullptr, true);
 	}
 
-	const bool isGameOver() const {
+	bool isGameOver() const {
 		const SnakeBody& h = _snake.getHead();
 		
 		for (int i = 1; i < _snake._body.size(); i++) {
@@ -273,7 +287,7 @@ public:
 		return !IntersectRect(&temp, &cr, &headRect);
 	}
 
-	const bool isValidBait(const Bait& bait_) const {
+	bool isValidBait(const Bait& bait_) const {
 		for (const auto& sb : _snake._body) {
 			if (bait_.isCollided(sb)) 
 				return false;
@@ -281,18 +295,19 @@ public:
 		return true;
 	}
 
-	void placeBait(Bait& bait_) {
+	void placeBaitWithType(Bait& bait_) {
 		RECT cr;
 
 		GetClientRect(hWnd, &cr);
 		POINT randomPoint{ 0, 0 };
 		
-		cr.left += static_cast<int>(bait_._size);
-		cr.top += static_cast<int>(bait_._size);
-		cr.right -= static_cast<int>(bait_._size);
-		cr.bottom -= static_cast<int>(bait_._size);
+		cr.left		+= static_cast<int>(bait_._size);
+		cr.top		+= static_cast<int>(bait_._size);
+		cr.right	-= static_cast<int>(bait_._size);
+		cr.bottom	-= static_cast<int>(bait_._size);
+		int upperLimit = 1000;
 		
-		while (true) {
+		for (;;) {
 			randomPoint = Util::getRandomPointInRect(cr);
 			_bait.setPos(randomPoint);
 			if (isValidBait(_bait)) break;
@@ -300,10 +315,10 @@ public:
 	}
 	
 	void placeBait() {
-		placeBait(_bait);
+		placeBaitWithType(_bait);
 	}
 
-	void draw(const HDC& hdc_) const {
+	void draw(HDC hdc_) const {
 		_snake.draw(hdc_, _snakeHeadColor, _snakeBodyColor);
 		_bait.draw(hdc_);
 	}
