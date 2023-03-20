@@ -10,7 +10,7 @@
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-Game g;
+Game g; //Game();
 //Snake& s = g._snake;
 
 // Forward declarations of functions included in this code module:
@@ -28,7 +28,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
-
     // TODO: Place code here.
 
     // Initialize global strings
@@ -111,10 +110,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    if (!hWnd)
    {
-      return FALSE;
+       return FALSE;
    }
+   
+   RECT cr;
+   GetClientRect(hWnd, &cr);
+   const int w = cr.right - cr.left;
+   const int h = cr.bottom- cr.top;
+   int dw = 600 - w;
+   int dh = 600 - h;
+   SetWindowPos(hWnd, NULL, cr.left, cr.top, cr.right + dw, cr.bottom + dh, 0);
+   
+   
 
-   g = Game(hWnd, 0, 0); // should use pointer actually.
+   //g = Game(hWnd, 0, 0); // should use pointer actually.
    
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
@@ -136,6 +145,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_CREATE: {
+
+        g.setHWnd(hWnd);
+        g.restart();
+        //SetTimer(hWnd, 0, g.getSnake().getSpeed(), nullptr);
+    }
+
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -153,9 +169,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
-    case WM_TIMER:{
-        g.update();
-    }
+    case WM_TIMER: {
+        /*if (g.is_puase()) {
+            break;
+        }
+        else {
+            g.update();
+        }*/
+    } break;
 
     case WM_KEYDOWN: {
         Snake& s = g.getSnake();
@@ -163,14 +184,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_UP: { s.onKeyUp(); } break;
             case VK_DOWN: { s.onKeyDown(); } break;
             case VK_LEFT: { s.onKeyLeft(); } break;
-            case VK_RIGHT: {s.onKeyRight(); } break;
-            case VK_SPACE: {g.placeBait(); } break;
-            default: 
-                break;
+            case VK_RIGHT: { s.onKeyRight(); } break;
+            case VK_SPACE: { g.placeBait(); } break; //debug
+            case VK_ESCAPE: { g.restart(); } break; //debug
+            default: break;
         }
-        
         g.update();
-        //auto a = hWnd;
     } break;
     case WM_PAINT:
         {
