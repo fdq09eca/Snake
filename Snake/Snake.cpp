@@ -149,7 +149,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         g.setHWnd(hWnd);
         g.restart();
-        //SetTimer(hWnd, 0, g.getSnake().getSpeed(), nullptr);
+        SetTimer(hWnd, 0, static_cast<UINT>(g.getSnake().getSpeed()), nullptr);
     }
 
     case WM_COMMAND:
@@ -176,20 +176,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         else {
             g.update();
         }*/
+        g.update();
     } break;
 
     case WM_KEYDOWN: {
+        
         Snake& s = g.getSnake();
         switch (wParam) {
-            case VK_UP: { s.onKeyUp(); } break;
-            case VK_DOWN: { s.onKeyDown(); } break;
-            case VK_LEFT: { s.onKeyLeft(); } break;
-            case VK_RIGHT: { s.onKeyRight(); } break;
-            case VK_SPACE: { g.placeBait(); } break; //debug
+            case VK_UP:     { s.onKeyUp(); } break;
+            case VK_DOWN:   { s.onKeyDown(); } break;
+            case VK_LEFT:   { s.onKeyLeft(); } break;
+            case VK_RIGHT:  { s.onKeyRight(); } break;
+            case VK_SPACE:  { g.placeBait(); } break; //debug
             case VK_ESCAPE: { g.restart(); } break; //debug
+            case VK_TAB:    { g.setCurrentState(Game::GameState::GamePlay);} break; //debug
+            //case VK_ESCAPE: { g.restart(); } break; //debug
             default: break;
         }
-        g.update();
+        //g.update();
     } break;
     case WM_PAINT:
         {

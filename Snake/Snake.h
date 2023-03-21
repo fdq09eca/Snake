@@ -221,29 +221,45 @@ public:
 	void onKeyLeft()	{ setDirection(-1,  0); }
 	void onKeyRight()	{ setDirection( 1,  0); }
 };
-
 class Game {
+	//enum class GameState; // works?
+	
+	
 	POINT _snake_init_pos{0, 0};
 	Snake _snake;
 	Bait _bait;
 	HWND hWnd = NULL;
+	
 
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
 	COLORREF _snakeBodyColor = RGB(128, 128, 128); //grey body
 	
 public:
-	Game(int x_, int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } {}
+	enum class GameState {
+		None = 0,
+		TitlePage,
+		GamePlay,
+		GameOver,
+		LeaderBoard
+	};
+	
+	GameState _currentState = GameState::TitlePage; // i want to put this to private but to declare the enum class in public.
+
+	Game(int x_, int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } { };
 	Game() = default;
 	Game(const POINT& pos_) : Game(pos_.x, pos_.y) { }
 
+	void setCurrentState(GameState state) { _currentState = state; }
+	GameState getCurrentState() const { return _currentState; }
+	
 	void setHwnd(HWND hWnd_) { hWnd = hWnd_;}
-
 	Snake& getSnake() { return _snake; }
 
 	void setHWnd(HWND hWnd_) { hWnd = hWnd_;}
 
 	void restart() {
 		RECT cr;
+		_currentState = GameState::TitlePage;
 		GetClientRect(hWnd, &cr);
 		_snake_init_pos.x = (cr.right - cr.left) / 2; 
 		_snake_init_pos.y = (cr.bottom - cr.top) / 2; 
@@ -260,12 +276,29 @@ public:
 	}
 
 	void update() {
-		_snake.move();
-		if (_snake.getHead().isCollided(_bait)) {
-			_snake.grow(1);
-			placeBait();
+		switch (_currentState)
+		{
+		case Game::GameState::None:
+			break;
+		case Game::GameState::TitlePage:
+			break;
+		case Game::GameState::GamePlay: {
+			_snake.move();
+			if (_snake.getHead().isCollided(_bait)) {
+				_snake.grow(1);
+				placeBait();
+			}
+			InvalidateRect(hWnd, nullptr, true); 
 		}
-		InvalidateRect(hWnd, nullptr, true);
+			break;
+		case Game::GameState::GameOver:
+			break;
+		case Game::GameState::LeaderBoard:
+			break;
+		default:
+			break;
+		}
+		
 	}
 
 	bool isGameOver() const {
@@ -300,13 +333,13 @@ public:
 
 		GetClientRect(hWnd, &cr);
 		POINT randomPoint{ 0, 0 };
-		
-		cr.left		+= static_cast<int>(bait_._size);
-		cr.top		+= static_cast<int>(bait_._size);
-		cr.right	-= static_cast<int>(bait_._size);
-		cr.bottom	-= static_cast<int>(bait_._size);
+
+		cr.left += static_cast<int>(bait_._size);
+		cr.top += static_cast<int>(bait_._size);
+		cr.right -= static_cast<int>(bait_._size);
+		cr.bottom -= static_cast<int>(bait_._size);
 		int upperLimit = 1000;
-		
+
 		for (;;) {
 			randomPoint = Util::getRandomPointInRect(cr);
 			_bait.setPos(randomPoint);
@@ -319,7 +352,40 @@ public:
 	}
 
 	void draw(HDC hdc_) const {
+		
+		switch (_currentState)
+		{		
+			case GameState::None:			{ throw std::exception("GameState::None"); }	break;
+			case GameState::TitlePage:		{ drawTitle(hdc_); }							break;
+			case GameState::GamePlay:		{ drawGamePlay(hdc_); }							break;
+			case GameState::GameOver:		{ drawGameOver(hdc_); }							break;
+			case GameState::LeaderBoard:	{ drawRankingBoard(hdc_); }						break;
+			default:						{ throw std::exception("Unknown GameState"); }	break;
+		}
+	}
+
+	void drawGamePlay(HDC hdc_) const {
 		_snake.draw(hdc_, _snakeHeadColor, _snakeBodyColor);
 		_bait.draw(hdc_);
+	}
+
+	void drawTitle(HDC hdc_) const {
+		// todo: draw a `snake` title 
+		// todo: paste a bitmap under title 
+		// 3 buttons: 1. start game, 2. leaderBoard 3. quitGame
+		printf("drawTitle");
+	}
+
+	void drawGameOver(HDC hdc_) const {
+		// todo: draw a game over in the middle of the screen
+		//  buttons: 1. restart, 2. leaderBoard 3. quitGame backToTitle
+		printf("drawGameOver");
+	}
+
+	void drawRankingBoard(HDC hdc_) const {
+		// todo: draw a ranking board 
+		// 
+		// 1. backToTitle 2. quitGame
+		printf("drawLeaderBoard");
 	}
 };
