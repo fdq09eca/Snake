@@ -108,7 +108,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
        screenMidX, screenMidY, winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
    
-   // TODO: create a button for practive purpose?
+   // TODO: create a button for practice purpose?
    
    if (!hWnd) { return FALSE; }
    
