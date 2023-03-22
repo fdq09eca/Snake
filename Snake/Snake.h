@@ -5,6 +5,7 @@
 #include <cassert>
 
 
+
 class Util {
 public:
 
@@ -24,12 +25,38 @@ public:
 class Painter {
 
 public:
-	static void drawSquare(const HDC& hdc_, const POINT& pos_, const size_t& size_, const COLORREF& color)
+	static void drawSquare(HDC hdc_, POINT pos_, size_t size_, COLORREF color)
 	{
 		SelectObject(hdc_, GetStockObject(DC_BRUSH));
 		SetDCBrushColor(hdc_, color);
 		Rectangle(hdc_, pos_.x, pos_.y, pos_.x + static_cast<int>(size_), pos_.y + static_cast<int>(size_));
 	}
+
+	static void drawScene_Landing(HWND hWnd_, HDC hdc_) {
+		RECT tr;
+		GetClientRect(hWnd_, &tr);
+		LONG tr_h = tr.bottom - tr.top;
+		LONG tr_w = tr.right - tr.left;
+		tr.top += tr_h / 4;
+		tr.bottom -= tr_h / 2;
+		tr.left += tr_w / 4;
+		tr.right -= tr_w / 4;
+
+
+		HPEN tPen = CreatePen(PS_SOLID, 5, RGB(127, 127, 127));
+		SelectObject(hdc_, GetStockObject(WHITE_BRUSH));
+		SelectObject(hdc_, tPen);
+		Rectangle(hdc_, tr.left, tr.top, tr.right, tr.bottom);
+		DrawText(hdc_, TEXT("SNAKE"), 5, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		DeleteObject(tPen);
+	}
+
+	static void drawMessage(HWND hWnd_, HDC hdc_, const wchar_t* s, RECT rect_, COLORREF bgColor = TRANSPARENT, COLORREF textColor = RGB(0, 0, 0)) { //transparent become black..?
+		SetTextColor(hdc_, textColor);
+		SetBkColor(hdc_, bgColor);
+		DrawText(hdc_, s, (int)wcslen(s), &rect_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	}
+
 
 };
 
@@ -89,6 +116,7 @@ public:
 	}
 
 };
+
 
 
 class SnakeBody : GameObject {
@@ -221,6 +249,7 @@ public:
 	void onKeyLeft()	{ setDirection(-1,  0); }
 	void onKeyRight()	{ setDirection( 1,  0); }
 };
+
 class Game {
 	//enum class GameState; // works?
 	
@@ -229,6 +258,7 @@ class Game {
 	Snake _snake;
 	Bait _bait;
 	HWND hWnd = NULL;
+	bool _isPause = false;
 	
 
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
@@ -257,9 +287,9 @@ public:
 
 	void setHWnd(HWND hWnd_) { hWnd = hWnd_;}
 
-	void restart() {
+	void restart(GameState dstGameState = GameState::Landing) {
 		RECT cr;
-		_currentState = GameState::Landing;
+		_currentState = dstGameState;
 		GetClientRect(hWnd, &cr);
 		_snake_init_pos.x = (cr.right - cr.left) / 2; 
 		_snake_init_pos.y = (cr.bottom - cr.top) / 2; 
@@ -296,10 +326,17 @@ public:
 
 	void update_GamePlay() {
 		if (_currentState != GameState::GamePlay) return;
+
+		if (_isPause) {
+			InvalidateRect(hWnd, nullptr, true);
+			return;
+		}
+
 		_snake.move();
 		
 		if (isGameOver()) {
 			_currentState = GameState::GameOver;
+			InvalidateRect(hWnd, nullptr, true);
 			return;
 		}
 		
@@ -363,7 +400,7 @@ public:
 		switch (_currentState)
 		{		
 			case GameState::None:			{ throw std::exception("GameState::None"); }	break;
-			case GameState::Landing:		{ drawTitle(hdc_); }							break;
+			case GameState::Landing:		{ drawScene_Landing(hdc_); }							break;
 			case GameState::GamePlay:		{ drawGamePlay(hdc_); }							break;
 			case GameState::GameOver:		{ drawGameOver(hdc_); }							break;
 			case GameState::LeaderBoard:	{ drawRankingBoard(hdc_); }						break;
@@ -374,39 +411,61 @@ public:
 	void drawGamePlay(HDC hdc_) const {
 		_snake.draw(hdc_, _snakeHeadColor, _snakeBodyColor);
 		_bait.draw(hdc_);
+		if (_isPause) { drawPause(hdc_); }
 	}
 
-	//POINT ClientRectMiddle();
+	void togglePause() { _isPause = !_isPause; }
+	
+	void onEsc() {
+		if (_currentState == GameState::GameOver) {
+			restart(GameState::GamePlay);
+		}
+	}
+	
+	void onSpace() {
+		switch (_currentState)
+		{
+			case Game::GameState::Landing:		{ setCurrentState(GameState::GamePlay); } break;
+			case Game::GameState::GamePlay:		{ togglePause(); } break;
+			case Game::GameState::GameOver:		{ setCurrentState(GameState::LeaderBoard); } break;
+			case Game::GameState::LeaderBoard:	{ setCurrentState(GameState::Landing); } break;
+			case Game::GameState::None:			{ assert(false && "GameState::None"); } break;
+			default:							{ assert(false && "Unknow GameState"); } break;
+		}
+	}
 
-	void drawTitle(HDC hdc_) const {
+	
+	void drawPause(HDC hdc_) const {
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		Painter::drawMessage(hWnd, hdc_, L"Pause", cr, RGB(127, 127, 127), RGB(0, 0, 0));
+	}
+
+
+
+	void drawScene_Landing(HDC hdc_) const {
 		// todo: draw a `snake` title 
-		RECT tr;
-		GetClientRect(hWnd, &tr);
-		LONG tr_h = tr.bottom - tr.top;
-		LONG tr_w = tr.right - tr.left;
-		tr.top += tr_h / 4;
-		tr.bottom -= tr_h / 2;
-		tr.left  += tr_w / 4;
-		tr.right -= tr_w / 4;
-
-		
-		HPEN tPen = CreatePen(PS_SOLID, 50, _snakeBodyColor);
-		SelectObject(hdc_, GetStockObject(WHITE_BRUSH));
-		SelectObject(hdc_, tPen);
-		Rectangle(hdc_, tr.left, tr.top, tr.right, tr.bottom);
-		DrawText(hdc_, TEXT("SNAKE"), 5, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-		DeleteObject(tPen);
-
-		// todo: paste a bitmap under title 
-		// 3 buttons: 1. start game, 2. leaderBoard 3. quitGame
+		Painter::drawScene_Landing(hWnd, hdc_);
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		// drawSprite
+		cr.top += (cr.bottom - cr.top) / 2;
+		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> To Continue", cr, RGB(127, 127, 127), RGB(0, 0, 0));
 		printf("drawTitle");
 	}
 
 	void drawGameOver(HDC hdc_) const {
 		// todo: draw a game over in the middle of the screen
-		//  buttons: 1. restart, 2. leaderBoard 3. quitGame backToTitle
-		//printf("drawGameOver");
 		drawGamePlay(hdc_);
+		
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		Painter::drawMessage(hWnd, hdc_, L"Game Over", cr, RGB(255, 0, 0), RGB(255, 255, 255));
+		cr.top += (cr.bottom - cr.top) / 3;
+		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> To continue", cr, RGB(127, 127, 127), RGB(0, 0, 0));
+		cr.top += (cr.bottom - cr.top) / 5;
+		Painter::drawMessage(hWnd, hdc_, L"Press <ESC> To restart", cr, RGB(127, 127, 127), RGB(0, 0, 0));
+		
 	}
 
 	void drawRankingBoard(HDC hdc_) const {

@@ -187,9 +187,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_DOWN:   { s.onKeyDown(); } break;
             case VK_LEFT:   { s.onKeyLeft(); } break;
             case VK_RIGHT:  { s.onKeyRight(); } break;
-            case VK_SPACE:  { g.placeBait(); } break; //debug
-            case VK_ESCAPE: { g.restart(); } break; //debug
-                case VK_TAB:    { g.setCurrentState(Game::GameState::GamePlay);} break; //debug     
+            case VK_SPACE:  { g.onSpace(); } break; //debug
+            case VK_ESCAPE: { g.onEsc(); } break; //debug
             
             //case VK_ESCAPE: { g.restart(); } break; //debug
             default: break;
