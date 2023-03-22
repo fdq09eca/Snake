@@ -107,23 +107,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    const int screenMidY = GetSystemMetrics(SM_CYSCREEN) / 2 - winHeight/2;
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
        screenMidX, screenMidY, winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
-
-   if (!hWnd)
-   {
-       return FALSE;
-   }
    
-   RECT cr;
-   GetClientRect(hWnd, &cr);
-   const int w = cr.right - cr.left;
-   const int h = cr.bottom- cr.top;
-   int dw = 600 - w;
-   int dh = 600 - h;
-   //SetWindowPos(hWnd, NULL, cr.left, cr.top, cr.right + dw, cr.bottom + dh, 0);
+   // TODO: create a button for practive purpose?
    
-   
-
-   //g = Game(hWnd, 0, 0); // should use pointer actually.
+   if (!hWnd) { return FALSE; }
    
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
