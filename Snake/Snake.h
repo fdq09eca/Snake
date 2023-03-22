@@ -237,13 +237,13 @@ class Game {
 public:
 	enum class GameState {
 		None = 0,
-		TitlePage,
+		Landing,
 		GamePlay,
 		GameOver,
 		LeaderBoard
 	};
 	
-	GameState _currentState = GameState::TitlePage; // i want to put this to private but to declare the enum class in public.
+	GameState _currentState = GameState::Landing; // i want to put this to private but to declare the enum class in public.
 
 	Game(int x_, int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } { };
 	Game() = default;
@@ -259,7 +259,7 @@ public:
 
 	void restart() {
 		RECT cr;
-		_currentState = GameState::TitlePage;
+		_currentState = GameState::Landing;
 		GetClientRect(hWnd, &cr);
 		_snake_init_pos.x = (cr.right - cr.left) / 2; 
 		_snake_init_pos.y = (cr.bottom - cr.top) / 2; 
@@ -278,35 +278,45 @@ public:
 	void update() {
 		switch (_currentState)
 		{
-		case Game::GameState::None:
-			break;
-		case Game::GameState::TitlePage:
-			break;
-		case Game::GameState::GamePlay: {
-			_snake.move();
-			if (_snake.getHead().isCollided(_bait)) {
-				_snake.grow(1);
-				placeBait();
-			}
-			InvalidateRect(hWnd, nullptr, true); 
-		}
-			break;
-		case Game::GameState::GameOver:
-			break;
-		case Game::GameState::LeaderBoard:
-			break;
+		case Game::GameState::None: break;
+		case Game::GameState::Landing: break;
+		case Game::GameState::GamePlay: { update_GamePlay(); } break;
+		case Game::GameState::GameOver: break;
+		case Game::GameState::LeaderBoard: break;
 		default:
 			break;
 		}
 		
 	}
 
-	bool isGameOver() const {
-		const SnakeBody& h = _snake.getHead();
+	void update_TitlePage() {
+		if (_currentState != GameState::Landing) return;
+
+	}
+
+	void update_GamePlay() {
+		if (_currentState != GameState::GamePlay) return;
+		_snake.move();
 		
+		if (isGameOver()) {
+			_currentState = GameState::GameOver;
+			return;
+		}
+		
+		if (_snake.getHead().isCollided(_bait)) {
+			_snake.grow(1);
+			placeBait();
+		}
+		
+		InvalidateRect(hWnd, nullptr, true);
+	}
+
+	bool isGameOver() const {
+		
+		const SnakeBody& h = _snake.getHead();
 		for (int i = 1; i < _snake._body.size(); i++) {
 			const SnakeBody& b = _snake._body[i];
-			if (h.isCollided(b)) return true;
+			if (h.isCollided(b))  return true; 
 		}
 
 
@@ -315,7 +325,6 @@ public:
 			auto lastError = GetLastError();
 		}
 		headRect = _snake.getHead().hitBox();
-
 
 		return !IntersectRect(&temp, &cr, &headRect);
 	}
@@ -347,16 +356,14 @@ public:
 		}
 	}
 	
-	void placeBait() {
-		placeBaitWithType(_bait);
-	}
+	void placeBait() { placeBaitWithType(_bait); }
 
 	void draw(HDC hdc_) const {
 		
 		switch (_currentState)
 		{		
 			case GameState::None:			{ throw std::exception("GameState::None"); }	break;
-			case GameState::TitlePage:		{ drawTitle(hdc_); }							break;
+			case GameState::Landing:		{ drawTitle(hdc_); }							break;
 			case GameState::GamePlay:		{ drawGamePlay(hdc_); }							break;
 			case GameState::GameOver:		{ drawGameOver(hdc_); }							break;
 			case GameState::LeaderBoard:	{ drawRankingBoard(hdc_); }						break;
@@ -369,8 +376,27 @@ public:
 		_bait.draw(hdc_);
 	}
 
+	//POINT ClientRectMiddle();
+
 	void drawTitle(HDC hdc_) const {
 		// todo: draw a `snake` title 
+		RECT tr;
+		GetClientRect(hWnd, &tr);
+		LONG tr_h = tr.bottom - tr.top;
+		LONG tr_w = tr.right - tr.left;
+		tr.top += tr_h / 4;
+		tr.bottom -= tr_h / 2;
+		tr.left  += tr_w / 4;
+		tr.right -= tr_w / 4;
+
+		
+		HPEN tPen = CreatePen(PS_SOLID, 50, _snakeBodyColor);
+		SelectObject(hdc_, GetStockObject(WHITE_BRUSH));
+		SelectObject(hdc_, tPen);
+		Rectangle(hdc_, tr.left, tr.top, tr.right, tr.bottom);
+		DrawText(hdc_, TEXT("SNAKE"), 5, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		DeleteObject(tPen);
+
 		// todo: paste a bitmap under title 
 		// 3 buttons: 1. start game, 2. leaderBoard 3. quitGame
 		printf("drawTitle");
@@ -379,7 +405,8 @@ public:
 	void drawGameOver(HDC hdc_) const {
 		// todo: draw a game over in the middle of the screen
 		//  buttons: 1. restart, 2. leaderBoard 3. quitGame backToTitle
-		printf("drawGameOver");
+		//printf("drawGameOver");
+		drawGamePlay(hdc_);
 	}
 
 	void drawRankingBoard(HDC hdc_) const {

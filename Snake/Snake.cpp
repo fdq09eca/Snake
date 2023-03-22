@@ -51,7 +51,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
             TranslateMessage(&msg);
-            DispatchMessage(&msg);
+                DispatchMessage(&msg);
         }
     }
 
@@ -189,7 +189,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_RIGHT:  { s.onKeyRight(); } break;
             case VK_SPACE:  { g.placeBait(); } break; //debug
             case VK_ESCAPE: { g.restart(); } break; //debug
-            case VK_TAB:    { g.setCurrentState(Game::GameState::GamePlay);} break; //debug
+                case VK_TAB:    { g.setCurrentState(Game::GameState::GamePlay);} break; //debug     
+            
             //case VK_ESCAPE: { g.restart(); } break; //debug
             default: break;
         }
