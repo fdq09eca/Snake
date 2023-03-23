@@ -9,30 +9,58 @@ class MyBitMap {
 	int _id = 0;
 	HBITMAP _bitmap = NULL;
 	BITMAP _info;
+
 public:
 	MyBitMap() = delete;
 	MyBitMap(int id_) : _id(id_) { init(_id); };
 
 	void init(int id) {
 		_bitmap = LoadBitmap(GetModuleHandle(nullptr), MAKEINTRESOURCE(id));
-		const auto& result = GetObject(_bitmap, sizeof(_info), &_info);
-		if (!result) { auto e = GetLastError(); }
+		int result = GetObject(_bitmap, sizeof(_info), &_info);
+		if (result <= 0) { auto e = GetLastError(); }
 	}
 
 	void loadFromResource(int id) {
 		_bitmap = LoadBitmap(GetModuleHandle(nullptr), MAKEINTRESOURCE(id));
 	}
 
-	const BITMAP& info() const { return _info; }
-	const size_t& width() const { return static_cast<size_t>(_info.bmWidth); }
-	const size_t& height() const { return static_cast<size_t>(_info.bmHeight); }
+	const BITMAP&	info()    const { return _info; }
+	const HBITMAP&	bitmap()  const { return _bitmap; }
+	const size_t&	width()	  const { return static_cast<size_t>(_info.bmWidth); }
+	const size_t&	height()  const { return static_cast<size_t>(_info.bmHeight); }
 
-	void draw(HWND hWnd_, HDC hdc_, int x_, int y_) const {
+	void draw(HDC hdc_, int x_, int y_) const {
 		if (!_bitmap) { return; }
-		if (!hWnd_) { return; }
-		HDC srcDC = GetDC(hWnd_);
+		HWND hWnd = WindowFromDC(hdc_);
+		HDC srcDC = GetDC(hWnd);
 		SelectObject(srcDC, _bitmap);
 		BitBlt(hdc_, x_, y_, (int)width(), (int)height(), srcDC, 0, 0, SRCCOPY);
+	}
+};
+
+class Sprite {
+	POINT _pos{ 0, 0 };
+	size_t _currentFrame = 0;
+	size_t _maxFrame = 0;
+	int _beginFrameId = 0;
+	std::vector<MyBitMap> _frames;
+
+public:
+	Sprite() = delete;
+	Sprite(POINT pos_, int beginFrameId_, size_t maxFrame_) : _pos(pos_), _beginFrameId(beginFrameId_), _maxFrame(maxFrame_) { init(); };
+
+	void init() {
+		for (size_t i = 0; i < _maxFrame; i++) {
+			_frames.emplace_back(_beginFrameId + i);
+		}
+	}
+
+	void draw(HDC hdc_) const {
+		_frames[_currentFrame].draw(hdc_, _pos.x, _pos.y);
+	}
+
+	void nextFrame() { // for setTimer
+		_currentFrame = (_currentFrame + 1) % _maxFrame;
 	}
 };
 
