@@ -157,12 +157,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_TIMER: {
-        /*if (g.is_puase()) {
-            break;
-        }
-        else {
-            g.update();
-        }*/
         g.update();
     } break;
 
@@ -170,17 +164,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         
         Snake& s = g.getSnake();
         switch (wParam) {
-            case VK_UP:     { s.onKeyUp(); } break;
-            case VK_DOWN:   { s.onKeyDown(); } break;
-            case VK_LEFT:   { s.onKeyLeft(); } break;
+            case VK_UP:     { s.onKeyUp(); }    break;
+            case VK_DOWN:   { s.onKeyDown(); }  break;
+            case VK_LEFT:   { s.onKeyLeft(); }  break;
             case VK_RIGHT:  { s.onKeyRight(); } break;
-            case VK_SPACE:  { g.onSpace(); } break; //debug
-            case VK_ESCAPE: { g.onEsc(); } break; //debug
+            case VK_SPACE:  { g.onSpace(); }    break;
+            case VK_ESCAPE: { g.onEsc(); }      break;
             
+            //case VK_RETURN: { g.update(); } break; //debug
             //case VK_ESCAPE: { g.restart(); } break; //debug
             default: break;
         }
-        //g.update();
     } break;
     case WM_PAINT:
         {

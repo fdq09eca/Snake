@@ -45,5 +45,44 @@
     <Image Include="Snake.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="TitleSnake\s1.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s10.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s11.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s12.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s13.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s2.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s3.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s4.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s5.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s6.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s7.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s8.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="TitleSnake\s9.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

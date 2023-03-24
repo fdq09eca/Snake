@@ -4,6 +4,9 @@
 #include "Resource.h"
 #include <vector>
 #include <cassert>
+#include <stdexcept>
+#include <string>
+#include <time.h>
 
 class MyBitMap {
 	int _id = 0;
@@ -15,52 +18,91 @@ public:
 	MyBitMap(int id_) : _id(id_) { init(_id); };
 
 	void init(int id) {
-		_bitmap = LoadBitmap(GetModuleHandle(nullptr), MAKEINTRESOURCE(id));
+		loadFromResource(id);
 		int result = GetObject(_bitmap, sizeof(_info), &_info);
-		if (result <= 0) { auto e = GetLastError(); }
+		if (result <= 0) {
+			auto e = GetLastError(); 
+		}
 	}
 
 	void loadFromResource(int id) {
 		_bitmap = LoadBitmap(GetModuleHandle(nullptr), MAKEINTRESOURCE(id));
 	}
 
-	const BITMAP&	info()    const { return _info; }
-	const HBITMAP&	bitmap()  const { return _bitmap; }
-	const size_t&	width()	  const { return static_cast<size_t>(_info.bmWidth); }
-	const size_t&	height()  const { return static_cast<size_t>(_info.bmHeight); }
+	const BITMAP&	info()    const { return _info;          }
+	const HBITMAP&	bitmap()  const { return _bitmap;		 }
+	const LONG&	    width()	  const { return _info.bmWidth;  }
+	const LONG&	    height()  const { return _info.bmHeight; }
+
+	int id() const { return _id; }
 
 	void draw(HDC hdc_, int x_, int y_) const {
-		if (!_bitmap) { return; }
-		HWND hWnd = WindowFromDC(hdc_);
-		HDC srcDC = GetDC(hWnd);
+		if (!_bitmap) { 
+			assert(false);
+		}
+		HDC srcDC = CreateCompatibleDC(hdc_); //
 		SelectObject(srcDC, _bitmap);
-		BitBlt(hdc_, x_, y_, (int)width(), (int)height(), srcDC, 0, 0, SRCCOPY);
+		int is_ok = BitBlt(hdc_, x_, y_, (int)width(), (int)height(), srcDC, 0, 0, SRCCOPY);
+		if (!is_ok) {
+			int e = GetLastError();
+		}
+		//BitBlt(hdc_, x_, y_, 100, 100, srcDC, 0, 0, SRCCOPY);
+
+#if 0
+		std::string s_id = "id: "  + std::to_string(_id);
+		std::string s_w = "w: "  + std::to_string(width());
+		std::string s_h = "h: "  + std::to_string(height());
+		std::string s_g = "g: "  + std::to_string(is_ok);
+		TextOutA(hdc_, x_, y_, s_id.c_str(), (int)s_id.length());
+		TextOutA(hdc_, x_ + 50, y_, s_w.c_str(), (int)s_w.length());
+		TextOutA(hdc_, x_ + 100, y_, s_h.c_str(), (int)s_h.length());
+		TextOutA(hdc_, x_ + 150, y_, s_g.c_str(), (int)s_g.length());
+#endif
 	}
 };
 
 class Sprite {
-	POINT _pos{ 0, 0 };
-	size_t _currentFrame = 0;
-	size_t _maxFrame = 0;
+	int _currentFrameIdx = 0;
 	int _beginFrameId = 0;
+	int _endFrameId = 0;
 	std::vector<MyBitMap> _frames;
 
 public:
-	Sprite() = delete;
-	Sprite(POINT pos_, int beginFrameId_, size_t maxFrame_) : _pos(pos_), _beginFrameId(beginFrameId_), _maxFrame(maxFrame_) { init(); };
+	Sprite() = default;
+	Sprite(int beginFrameId_, int endFrameId_) : _beginFrameId(beginFrameId_), _endFrameId(endFrameId_) { init(); };
 
 	void init() {
-		for (size_t i = 0; i < _maxFrame; i++) {
-			_frames.emplace_back(_beginFrameId + i);
+		for (int id = _beginFrameId; id <= _endFrameId; id++) {
+			_frames.emplace_back(id);
 		}
 	}
 
-	void draw(HDC hdc_) const {
-		_frames[_currentFrame].draw(hdc_, _pos.x, _pos.y);
+	int nFrames() const { return (int)_frames.size(); }
+
+	const MyBitMap& currentFrame() const {
+		if (_frames.size() == 0) 
+			assert(false);
+		return _frames[_currentFrameIdx];
+		//return _frames[0];
 	}
 
-	void nextFrame() { // for setTimer
-		_currentFrame = (_currentFrame + 1) % _maxFrame;
+	const LONG& width() const {
+		return currentFrame().width();
+	}
+
+	const LONG& height() const {
+		return currentFrame().height();
+	}
+
+	const int currentFrameIdx() const { return _currentFrameIdx; }
+
+	void draw(HDC hdc_, int x, int y) const {
+		currentFrame().draw(hdc_, x, y);
+		
+	}
+
+	void nextFrame() {
+		_currentFrameIdx = (_currentFrameIdx + 1) % nFrames();
 	}
 };
 
@@ -90,7 +132,42 @@ public:
 		Rectangle(hdc_, pos_.x, pos_.y, pos_.x + static_cast<int>(size_), pos_.y + static_cast<int>(size_));
 	}
 
-	static void drawScene_Landing(HWND hWnd_, HDC hdc_) {
+	static void drawLanding(HWND hWnd_, HDC hdc_, const Sprite& sprite_) {
+
+
+		RECT cr;
+		GetClientRect(hWnd_, &cr);
+		LONG cr_w = cr.right - cr.left;
+		LONG cr_h = cr.bottom - cr.top;
+		POINT spos;
+		POINT cr_mid;
+		cr_mid.x = cr.left + cr_w / 2;
+		cr_mid.y = cr.top + cr_h / 2;
+		spos.x = cr_mid.x - sprite_.width()  / 2;
+		spos.y = cr_mid.y - sprite_.height() / 2 ;
+		
+		bool b = sprite_.currentFrameIdx() == sprite_.nFrames() - 1;
+		Rectangle(hdc_, spos.x - 5, spos.y - 5, spos.x + sprite_.width() + 5, spos.y + sprite_.height() + 5);
+		
+		//std::string currFrameIdx = "currFrameIdx: "+std::to_string(sprite_.currentFrameIdx());
+		//TextOutA(hdc_, 0, 0, currFrameIdx.c_str(), (int)currFrameIdx.length());
+		
+		/*s.draw(hdc_, spos.x, spos.y);*/ // this does not work, it does not loop..
+		MyBitMap bmp(sprite_.currentFrame().id()); // this works.
+		bmp.draw(hdc_, spos.x, spos.y);  
+#if 1
+		GetClientRect(hWnd_, &cr);
+		cr.bottom -= cr_h / 2;
+		Painter::drawMessage(hWnd_, hdc_, L"SNAKE", cr, TRANSPARENT, RGB(255, 255, 255), 48); //TRANSPARENT is black?
+
+		GetClientRect(hWnd_, &cr);
+		cr.top += (cr.bottom - cr.top) / 2;
+		Painter::drawMessage(hWnd_, hdc_, L"Press <SPACE> To Play", cr, RGB(127, 127, 127), RGB(0, 0, 0));
+#endif // 1
+
+	}
+
+	static void drawScene_Ranking(HWND hWnd_, HDC hdc_) {
 		RECT tr;
 		GetClientRect(hWnd_, &tr);
 		LONG tr_h = tr.bottom - tr.top;
@@ -105,14 +182,24 @@ public:
 		SelectObject(hdc_, GetStockObject(WHITE_BRUSH));
 		SelectObject(hdc_, tPen);
 		Rectangle(hdc_, tr.left, tr.top, tr.right, tr.bottom);
-		DrawText(hdc_, TEXT("SNAKE"), 5, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		DrawText(hdc_, TEXT("Ranking here"), 5, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		DeleteObject(tPen);
 	}
 
-	static void drawMessage(HWND hWnd_, HDC hdc_, const wchar_t* s, RECT rect_, COLORREF bgColor = TRANSPARENT, COLORREF textColor = RGB(0, 0, 0)) { //transparent become black..?
+	static void drawMessage(HWND hWnd_, HDC hdc_, const wchar_t* s, RECT rect_, COLORREF bgColor = TRANSPARENT, COLORREF textColor = RGB(0, 0, 0), int fontSize = NULL) {
 		SetTextColor(hdc_, textColor);
 		SetBkColor(hdc_, bgColor);
-		DrawText(hdc_, s, (int)wcslen(s), &rect_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		if (fontSize) {
+			int savedDC = SaveDC(hdc_);
+			HFONT hf = CreateFont(/*size=*/-fontSize, 0, 0, 0, FW_NORMAL, 0, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, L"MS Sans Serif");
+			SelectObject(hdc_, hf);
+			DrawText(hdc_, s, (int)wcslen(s), &rect_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			DeleteObject(hf);
+			RestoreDC(hdc_, savedDC);
+		}
+		else {
+			DrawText(hdc_, s, (int)wcslen(s), &rect_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		}
 	}
 
 
@@ -196,16 +283,11 @@ public:
 	}
 
 	void move(int dx_, int dy_) {
-
 		_pos.x += static_cast<LONG>(dx_ * _size);
 		_pos.y += static_cast<LONG>(dy_ * _size);
 	}
 
 };
-
-//enum class mycolor {
-//	GREEN = RGB(0 255, 0);
-//};
 
 class Bait: GameObject {
 	friend class Game;
@@ -244,10 +326,7 @@ public:
 	Snake(const POINT pos_) : Snake(pos_.x, pos_.y) { }
 
 	const	SnakeBody& getHead() const	{ return _body.front(); }
-			SnakeBody& getHead()		{ return _body.front(); }
-	
-	const	SnakeBody& getTail() const	{ return _body.back(); }
-			SnakeBody& getTail()		{ return _body.back(); }
+	const	SnakeBody& getTail() const	{ return _body.back();  }
 
 	void reset(const POINT pos_) {
 		GameObject::reset();
@@ -275,7 +354,7 @@ public:
 	}
 
 	void move() {
-		SnakeBody& h = getHead();
+		SnakeBody& h = _body.front();
 		
 		// body follow
 		for (size_t i = _body.size() - 1; i > 0; i--) {
@@ -318,7 +397,7 @@ class Game {
 	HWND hWnd = NULL;
 	bool _isPause = false;
 	
-
+	Sprite _landingSprite;
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
 	COLORREF _snakeBodyColor = RGB(128, 128, 128); //grey body
 	
@@ -328,13 +407,13 @@ public:
 		Landing,
 		GamePlay,
 		GameOver,
-		LeaderBoard
+		Ranking
 	};
 	
 	GameState _currentState = GameState::Landing; // i want to put this to private but to declare the enum class in public.
 
-	Game(int x_, int y_) : _snake(x_, y_), _snake_init_pos{ x_, y_ } { };
-	Game() = default;
+	//Game() = default;
+	Game(int x_ = 0, int y_ = 0) : _snake(x_, y_), _snake_init_pos{ x_, y_ }, _landingSprite(IDB_BITMAP1, IDB_BITMAP13) { srand((unsigned int) time(NULL)); };
 	Game(const POINT& pos_) : Game(pos_.x, pos_.y) { }
 
 	void setCurrentState(GameState state) { _currentState = state; }
@@ -366,24 +445,23 @@ public:
 	void update() {
 		switch (_currentState)
 		{
-		case Game::GameState::None: break;
-		case Game::GameState::Landing: break;
-		case Game::GameState::GamePlay: { update_GamePlay(); } break;
-		case Game::GameState::GameOver: break;
-		case Game::GameState::LeaderBoard: break;
-		default:
-			break;
+			case Game::GameState::None: break;
+			case Game::GameState::Landing: {update_Landing(); }break;
+			case Game::GameState::GamePlay: { update_GamePlay(); } break;
+			case Game::GameState::GameOver: break;
+			case Game::GameState::Ranking: break;
+			default:
+				break;
 		}
 		
 	}
 
-	void update_TitlePage() {
-		if (_currentState != GameState::Landing) return;
-
+	void update_Landing() {
+		_landingSprite.nextFrame();
+		InvalidateRect(hWnd, nullptr, true);
 	}
 
 	void update_GamePlay() {
-		if (_currentState != GameState::GamePlay) return;
 
 		if (_isPause) {
 			InvalidateRect(hWnd, nullptr, true);
@@ -458,10 +536,10 @@ public:
 		switch (_currentState)
 		{		
 			case GameState::None:			{ throw std::exception("GameState::None"); }	break;
-			case GameState::Landing:		{ drawScene_Landing(hdc_); }							break;
+			case GameState::Landing:		{ drawLanding(hdc_); }					break;
 			case GameState::GamePlay:		{ drawGamePlay(hdc_); }							break;
 			case GameState::GameOver:		{ drawGameOver(hdc_); }							break;
-			case GameState::LeaderBoard:	{ drawRankingBoard(hdc_); }						break;
+			case GameState::Ranking:		{ drawRanking(hdc_); }							break;
 			default:						{ throw std::exception("Unknown GameState"); }	break;
 		}
 	}
@@ -483,13 +561,15 @@ public:
 	void onSpace() {
 		switch (_currentState)
 		{
-			case Game::GameState::Landing:		{ setCurrentState(GameState::GamePlay); } break;
-			case Game::GameState::GamePlay:		{ togglePause(); } break;
-			case Game::GameState::GameOver:		{ setCurrentState(GameState::LeaderBoard); } break;
-			case Game::GameState::LeaderBoard:	{ setCurrentState(GameState::Landing); } break;
-			case Game::GameState::None:			{ assert(false && "GameState::None"); } break;
-			default:							{ assert(false && "Unknow GameState"); } break;
+			case Game::GameState::Landing:		{ setCurrentState(GameState::GamePlay); }	break;
+			case Game::GameState::GamePlay:		{ togglePause();						}   break;
+			case Game::GameState::GameOver:		{ setCurrentState(GameState::Ranking); 
+												  InvalidateRect(hWnd, nullptr, true);	}	break;
+			case Game::GameState::Ranking:		{ restart();							}	break;
+			case Game::GameState::None:			{ assert(false && "GameState::None");	}	break;
+			default:							{ assert(false && "Unknow GameState");	}	break;
 		}
+		
 	}
 
 	
@@ -497,20 +577,13 @@ public:
 		RECT cr;
 		GetClientRect(hWnd, &cr);
 		Painter::drawMessage(hWnd, hdc_, L"Pause", cr, RGB(127, 127, 127), RGB(0, 0, 0));
+		cr.top += (cr.bottom - cr.top) / 4;
+		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> to resume", cr, RGB(127, 127, 127), RGB(0, 0, 0));
 	}
 
 
 
-	void drawScene_Landing(HDC hdc_) const {
-		// todo: draw a `snake` title 
-		Painter::drawScene_Landing(hWnd, hdc_);
-		RECT cr;
-		GetClientRect(hWnd, &cr);
-		// drawSprite
-		cr.top += (cr.bottom - cr.top) / 2;
-		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> To Continue", cr, RGB(127, 127, 127), RGB(0, 0, 0));
-		printf("drawTitle");
-	}
+	void drawLanding(HDC hdc_) const { Painter::drawLanding(hWnd, hdc_, _landingSprite); }
 
 	void drawGameOver(HDC hdc_) const {
 		// todo: draw a game over in the middle of the screen
@@ -526,10 +599,10 @@ public:
 		
 	}
 
-	void drawRankingBoard(HDC hdc_) const {
-		// todo: draw a ranking board 
-		// 
-		// 1. backToTitle 2. quitGame
-		printf("drawLeaderBoard");
+	void drawRanking(HDC hdc_) const {
+		
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		Painter::drawMessage(hWnd, hdc_, L"Ranking here.", cr, RGB(127, 127, 127), RGB(0, 0, 0));
 	}
 };
