@@ -430,12 +430,13 @@ struct LayoutBox {
 		return p;
 	}
 
-	RECT rect() {
+	RECT rect() const {
 		RECT r;
 		r.left = pos.x;
 		r.right = pos.x + width;
 		r.top = pos.y;
 		r.bottom = pos.y + height;
+		return r;
 	}
 
 	LayoutBox hCombine(LayoutBox r) {
@@ -453,16 +454,21 @@ struct LayoutBox {
 		lr.height = max(r.height, height);
 		return lr;
 	}
+
+	void draw(HDC hdc_) const {
+		RECT r = rect();
+		HPEN pen = (HPEN) GetStockObject(DC_PEN);
+		SetDCPenColor(hdc_, RGB(255, 255, 255));
+		SelectObject(hdc_, pen);
+		SelectObject(hdc_, GetStockObject(NULL_BRUSH));
+		Rectangle(hdc_, r.left, r.top, r.right, r.bottom);
+	}
 };
 
 struct GameLayout {
 	RECT cr;
 	LayoutBox uiRect;
 	LayoutBox gameRect;
-
-	GameLayout(int cell_size = 30, int n_cells_per_side = 20) {
-		
-	}
 
 	void initGameRect(int cell_size = 30, int n_cells_per_side = 20) {
 		gameRect.width = cell_size * n_cells_per_side;
@@ -483,11 +489,17 @@ struct GameLayout {
 		AdjustWindowRect(&cr, GetWindowLong(hWnd_, GWL_STYLE), false);
 	}
 
+	void draw(HDC hdc_) const {
+		uiRect.draw(hdc_);
+		gameRect.draw(hdc_);
+	}
+
 };
 
 class Game {
 
 private:
+	GameLayout gameLayout;
 	POINT _snake_init_pos{0, 0};
 	Snake _snake;
 	Bait _bait;
@@ -521,6 +533,7 @@ public:
 		HDC tmpDC = GetDC(hWnd_);
 		srcDC = CreateCompatibleDC(tmpDC);
 		ReleaseDC(hWnd, tmpDC);
+		gameLayout.init(hWnd, (int)_bait.getSize(), 20);
 	}
 
 	void restart(GameState dstGameState = GameState::Landing) {
@@ -648,6 +661,7 @@ public:
 	}
 
 	void drawGamePlay(HDC hdc_) const {
+		gameLayout.draw(hdc_);
 		_snake.draw(hdc_, _snakeHeadColor, _snakeBodyColor);
 		_bait.draw(hdc_);
 		if (_isPause) { drawPause(hdc_); }
@@ -685,11 +699,9 @@ public:
 		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> to resume", cr, RGB(127, 127, 127), RGB(0, 0, 0));
 	}
 
-
 	void drawTitle(HDC hdc_) const { Painter::drawTitle(hWnd, hdc_, srcDC, _landingSprite); }
 
 	void drawGameOver(HDC hdc_) const {
-		// todo: draw a game over in the middle of the screen
 		drawGamePlay(hdc_);
 		
 		RECT cr;
