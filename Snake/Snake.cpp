@@ -107,7 +107,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    const int screenMidY = GetSystemMetrics(SM_CYSCREEN) / 2 - winHeight/2;
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
        screenMidX, screenMidY, winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
-   
    // TODO: create a button for practice purpose?
    
    if (!hWnd) { return FALSE; }

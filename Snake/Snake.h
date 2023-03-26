@@ -414,6 +414,77 @@ enum class GameState {
 	Ranking
 };
 
+struct LayoutBox {
+	std::string name = "";
+	POINT pos{ 0, 0 }; //topleft corner
+	int width = 0;
+	int height = 0;
+
+	LayoutBox() = default;
+	LayoutBox(const char* name_, int width_, int height_) : name(name_), width(width_), height(height_) { }
+
+	POINT midPoint() {
+		POINT p;
+		p.x = (pos.x + width) / 2;
+		p.y = (pos.y + height) / 2;
+		return p;
+	}
+
+	RECT rect() {
+		RECT r;
+		r.left = pos.x;
+		r.right = pos.x + width;
+		r.top = pos.y;
+		r.bottom = pos.y + height;
+	}
+
+	LayoutBox hCombine(LayoutBox r) {
+		LayoutBox lr;
+		lr.pos = pos;
+		lr.width = max(r.width, width);
+		lr.height = r.height + height;
+		return lr;
+	}
+
+	LayoutBox vCombine(LayoutBox r) {
+		LayoutBox lr;
+		lr.pos = pos;
+		lr.width = r.width + width;
+		lr.height = max(r.height, height);
+		return lr;
+	}
+};
+
+struct GameLayout {
+	RECT cr;
+	LayoutBox uiRect;
+	LayoutBox gameRect;
+
+	GameLayout(int cell_size = 30, int n_cells_per_side = 20) {
+		
+	}
+
+	void initGameRect(int cell_size = 30, int n_cells_per_side = 20) {
+		gameRect.width = cell_size * n_cells_per_side;
+		gameRect.height = gameRect.width;
+	}
+
+	void initUiRect(int height) {
+		uiRect.width = gameRect.width;
+		uiRect.height = height;
+	}
+
+	void init(HWND hWnd_, int cell_size = 30, int n_cells_per_side = 20) {
+		initGameRect(cell_size, n_cells_per_side);
+		int ui_h = gameRect.height / cell_size;
+		initUiRect(ui_h);
+		LayoutBox expectedClientRect = uiRect.vCombine(gameRect);
+		cr = expectedClientRect.rect();
+		AdjustWindowRect(&cr, GetWindowLong(hWnd_, GWL_STYLE), false);
+	}
+
+};
+
 class Game {
 
 private:
@@ -519,6 +590,15 @@ public:
 	}
 
 	bool isValidBait(const Bait& bait_) const {
+		POINT rb_pt{
+			bait_.hitBox().right,
+			bait_.hitBox().bottom
+		};
+		RECT gr;
+		GetClientRect(hWnd, &gr);
+		if (!PtInRect(&gr, rb_pt)) 
+			return false;
+
 		for (const auto& sb : _snake._body) {
 			if (bait_.isCollided(sb)) 
 				return false;
