@@ -458,10 +458,14 @@ struct LayoutBox {
 	void draw(HDC hdc_) const {
 		RECT r = rect();
 		HPEN pen = (HPEN) GetStockObject(DC_PEN);
-		SetDCPenColor(hdc_, RGB(255, 255, 255));
+		int savedDc =  SaveDC(hdc_);
+		
+		SetDCPenColor(hdc_, RGB(127, 127, 127));
 		SelectObject(hdc_, pen);
 		SelectObject(hdc_, GetStockObject(NULL_BRUSH));
 		Rectangle(hdc_, r.left, r.top, r.right, r.bottom);
+		
+		RestoreDC(hdc_, savedDc);
 	}
 };
 
@@ -482,7 +486,7 @@ struct GameLayout {
 
 	void init(HWND hWnd_, int cell_size = 30, int n_cells_per_side = 20) {
 		initGameRect(cell_size, n_cells_per_side);
-		int ui_h = gameRect.height / cell_size;
+		int ui_h = cell_size;
 		initUiRect(ui_h);
 		LayoutBox expectedClientRect = uiRect.vCombine(gameRect);
 		cr = expectedClientRect.rect();
