@@ -134,7 +134,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE: {
 
-        g.setHWnd(hWnd);
+        g.init(hWnd);
         g.restart();
         SetTimer(hWnd, 0, static_cast<UINT>(g.getSnake().getSpeed()), nullptr);
     }
