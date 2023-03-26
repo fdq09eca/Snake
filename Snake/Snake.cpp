@@ -164,12 +164,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         
         Snake& s = g.getSnake();
         switch (wParam) {
-            case VK_UP:     { s.onKeyUp(); }    break;
-            case VK_DOWN:   { s.onKeyDown(); }  break;
-            case VK_LEFT:   { s.onKeyLeft(); }  break;
-            case VK_RIGHT:  { s.onKeyRight(); } break;
-            case VK_SPACE:  { g.onSpace(); }    break;
-            case VK_ESCAPE: { g.onEsc(); }      break;
+            case VK_UP:     { s.onKeyUp();    }  break;
+            case VK_DOWN:   { s.onKeyDown();  }  break;
+            case VK_LEFT:   { s.onKeyLeft();  }  break;
+            case VK_RIGHT:  { s.onKeyRight(); }  break;
+            case VK_SPACE:  { g.onSpace();    }  break;
+            case VK_ESCAPE: { g.onEsc();      }  break;
             
             //case VK_RETURN: { g.update(); } break; //debug
             //case VK_ESCAPE: { g.restart(); } break; //debug
@@ -181,7 +181,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             g.draw(hdc);
-            // TODO: Add any drawing code that uses hdc here...
             EndPaint(hWnd, &ps);
         }
         break;

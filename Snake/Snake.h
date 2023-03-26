@@ -9,12 +9,7 @@
 #include <time.h>
 
 
-enum class Direction {
-	N = 0, 
-	E, 
-	S,
-	W	
-};
+enum class Direction { N = 0,  E,  S, W	 };
 
 class MyBitMap {
 	int _id = 0;
@@ -299,6 +294,7 @@ class Snake : GameObject
 	size_t _init_body_size = 3;
 	Direction _currentDirection = Direction::N;
 	size_t _speed = 100;
+	bool _canSetDirection = false;
 
 	void init(const int x_, const int y_) {
 		if (_init_body_size == 0) { throw std::exception("init_size must be > 0"); }
@@ -322,6 +318,7 @@ public:
 		GameObject::reset();
 		clear_body();
 		init(pos_.x, pos_.y);
+		_canSetDirection = false;
 	}
 
 	size_t getSpeed() { return _speed; }
@@ -343,24 +340,32 @@ public:
 
 
 	void setDirection(Direction d) {
-		if (isOppositeDirection(d)) return;
+		if (!_canSetDirection || isOppositeDirection(d)) return;
 		_currentDirection = d;
+		_canSetDirection = false; // wait move() to release;
+		
 	}
 
-	const Direction& getDirection() const { return _currentDirection; }
-	Direction& getDirection()  { return getDirection(); }
+	const Direction& getCurrentDirection() const { return _currentDirection; }
+	Direction& getCurrentDirection()  { return getCurrentDirection(); }
 
-	POINT getNextPos() const {
+	POINT getCurrentDirectionAsVector() const {
 		POINT cd;
 		switch (_currentDirection)
 		{
-			case Direction::N: { cd.x =  0; cd.y =-1; } break;
-			case Direction::E: { cd.x =  1; cd.y = 0; } break;
-			case Direction::S: { cd.x =  0; cd.y = 1; } break;
+			case Direction::N: { cd.x = 0; cd.y = -1; } break;
+			case Direction::E: { cd.x = 1; cd.y = 0; } break;
+			case Direction::S: { cd.x = 0; cd.y = 1; } break;
 			case Direction::W: { cd.x = -1; cd.y = 0; } break;
 			default: { assert(false && "you should not be here"); } break;
 		}
+		return cd;
+	}
 
+	POINT getPos() const { return getHead().getPos(); }
+
+	POINT getNextPos() const {
+		POINT cd = getCurrentDirectionAsVector();
 		return getHead().getNextPos(cd.x, cd.y);
 	}
 
@@ -374,14 +379,9 @@ public:
 			dst.setPos(src.getPos());			
 		}
 
-		switch (_currentDirection)
-		{
-			case Direction::N: { h.move( 0, -1); } break;
-			case Direction::E: { h.move( 1,  0); } break;
-			case Direction::S: { h.move( 0,  1); } break;
-			case Direction::W: { h.move(-1,  0); } break;
-			default: { assert(false && "you should not be here"); } break;
-		}
+		POINT cd = getCurrentDirectionAsVector();
+		h.move(cd.x, cd.y);
+		_canSetDirection = true;
 	}
 
 	void grow(const size_t n = 1) {
@@ -460,13 +460,7 @@ public:
 		_snake_init_pos.y = (cr.bottom - cr.top) / 2; 
 
 		if (!_snake.getSize()) return;
-		int r = static_cast<int>(_snake.getHead().getSize());
-		int rx = _snake_init_pos.x % r;
-		int ry = _snake_init_pos.y % r;
-		_snake_init_pos.x -= rx;
-		_snake_init_pos.y -= ry;
-		
-		_snake.reset(_snake_init_pos);
+		_snake.reset(adjustedPosition(_snake_init_pos, _snake.getHead()));
 		placeBait();
 	}
 
@@ -490,14 +484,11 @@ public:
 	}
 
 	void update_GamePlay() {
-
 		if (_isPause) {
 			InvalidateRect(hWnd, nullptr, true);
 			return;
 		}
-
 		_snake.move();
-		
 		if (isGameOver()) {
 			_currentState = GameState::GameOver;
 			InvalidateRect(hWnd, nullptr, true);
@@ -517,17 +508,14 @@ public:
 		const SnakeBody& h = _snake.getHead();
 		for (int i = 1; i < _snake._body.size(); i++) {
 			const SnakeBody& b = _snake._body[i];
-			if (h.isCollided(b))  return true; 
+			if (h.isCollided(b)) return true; 
 		}
+		RECT cr;
+		GetClientRect(hWnd, &cr);
 
-
-		RECT cr, temp, headRect;
-		if (!GetClientRect(hWnd, &cr)) {
-			auto lastError = GetLastError();
-		}
-		headRect = _snake.getHead().hitBox();
-
-		return !IntersectRect(&temp, &cr, &headRect);
+		if (_snake._currentDirection == Direction::N || _snake._currentDirection == Direction::W)
+			return !PtInRect(&cr, _snake.getPos());
+		return !PtInRect(&cr, _snake.getNextPos());
 	}
 
 	bool isValidBait(const Bait& bait_) const {
@@ -540,21 +528,28 @@ public:
 
 	void placeBaitWithType(Bait& bait_) {
 		RECT cr;
+		int upperLimit = 1000;
 
 		GetClientRect(hWnd, &cr);
 		POINT randomPoint{ 0, 0 };
-
-		cr.left += static_cast<int>(bait_._size);
-		cr.top += static_cast<int>(bait_._size);
-		cr.right -= static_cast<int>(bait_._size);
-		cr.bottom -= static_cast<int>(bait_._size);
-		int upperLimit = 1000;
-
-		for (;;) {
+		
+		
+		for (int c = 0; c < upperLimit; c++) {
 			randomPoint = Util::getRandomPointInRect(cr);
+			randomPoint = adjustedPosition(randomPoint, _bait);
 			_bait.setPos(randomPoint);
-			if (isValidBait(_bait)) break;
+			if (isValidBait(_bait)) return;
 		}
+		assert(false && "sth is wrong");
+	}
+
+	POINT adjustedPosition(POINT pos, const GameObject& o) const {
+		int r = static_cast<int>(o.getSize());
+		int rx = pos.x % r;
+		int ry = pos.y % r;
+		pos.x -= rx;
+		pos.y -= ry;
+		return pos;
 	}
 	
 	void placeBait() { placeBaitWithType(_bait); }
