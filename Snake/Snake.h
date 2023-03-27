@@ -440,18 +440,22 @@ struct LayoutBox {
 	}
 
 	LayoutBox hCombine(LayoutBox r) {
-		LayoutBox lr;
-		lr.pos = pos;
-		lr.width = max(r.width, width);
-		lr.height = r.height + height;
-		return lr;
-	}
-
-	LayoutBox vCombine(LayoutBox r) {
+		r.pos.x = pos.x + height; // to right
+		
 		LayoutBox lr;
 		lr.pos = pos;
 		lr.width = r.width + width;
 		lr.height = max(r.height, height);
+		return lr;
+	}
+
+	LayoutBox vCombine(LayoutBox& r) {
+		r.pos.y = pos.y + height; // to below
+		
+		LayoutBox lr;
+		lr.pos = pos;
+		lr.width = max(r.width, width);
+		lr.height = r.height + height;
 		return lr;
 	}
 
@@ -470,7 +474,7 @@ struct LayoutBox {
 };
 
 struct GameLayout {
-	RECT cr;
+	LayoutBox clientRect;
 	LayoutBox uiRect;
 	LayoutBox gameRect;
 
@@ -484,13 +488,15 @@ struct GameLayout {
 		uiRect.height = height;
 	}
 
-	void init(HWND hWnd_, int cell_size = 30, int n_cells_per_side = 20) {
+	void init(int cell_size = 30, int n_cells_per_side = 20, DWORD wnd_style = WS_OVERLAPPEDWINDOW) {
 		initGameRect(cell_size, n_cells_per_side);
 		int ui_h = cell_size;
 		initUiRect(ui_h);
-		LayoutBox expectedClientRect = uiRect.vCombine(gameRect);
-		cr = expectedClientRect.rect();
-		AdjustWindowRect(&cr, GetWindowLong(hWnd_, GWL_STYLE), false);
+		clientRect = uiRect.vCombine(gameRect);
+		RECT cr = clientRect.rect();
+		AdjustWindowRect(&cr, wnd_style, false);
+		clientRect.width = cr.right - cr.left;
+		clientRect.height = cr.bottom - cr.top;
 	}
 
 	void draw(HDC hdc_) const {
@@ -498,12 +504,15 @@ struct GameLayout {
 		gameRect.draw(hdc_);
 	}
 
+	RECT getGameRect() const { return gameRect.rect(); };
+	RECT getUiRect() const { return uiRect.rect(); };
+	RECT rect() const { return clientRect.rect(); };
+
 };
 
 class Game {
 
 private:
-	GameLayout gameLayout;
 	POINT _snake_init_pos{0, 0};
 	Snake _snake;
 	Bait _bait;
@@ -520,11 +529,9 @@ public:
 	//Game() = default;
 	Game(int x_ = 0, int y_ = 0) : _snake(x_, y_), _snake_init_pos{ x_, y_ }, _landingSprite(IDB_BITMAP1, IDB_BITMAP13) { srand((unsigned int) time(NULL)); };
 	Game(const POINT& pos_) : Game(pos_.x, pos_.y) { }
-	~Game() {
-		if (srcDC) {
-			DeleteDC(srcDC);
-		}
-	}
+	~Game() { if (srcDC) { DeleteDC(srcDC); } }
+	GameLayout gameLayout;
+	
 	void setCurrentState(GameState state) { _currentState = state; }
 	GameState getCurrentState() const { return _currentState; }
 	
@@ -537,19 +544,23 @@ public:
 		HDC tmpDC = GetDC(hWnd_);
 		srcDC = CreateCompatibleDC(tmpDC);
 		ReleaseDC(hWnd, tmpDC);
-		gameLayout.init(hWnd, (int)_bait.getSize(), 20);
+		//gameLayout.init(hWnd, (int)_bait.getSize(), 20);
 	}
 
-	void restart(GameState dstGameState = GameState::Landing) {
-		RECT cr;
-		_currentState = dstGameState;
-		GetClientRect(hWnd, &cr);
-		_snake_init_pos.x = (cr.right - cr.left) / 2; 
-		_snake_init_pos.y = (cr.bottom - cr.top) / 2; 
 
-		if (!_snake.getSize()) return;
+
+	RECT gameRect() const { return gameLayout.getGameRect(); }
+	RECT uiRect() const { return gameLayout.getUiRect(); }
+
+	void restart(GameState dstGameState = GameState::Landing) {
+		RECT gr = gameRect();
+		_snake_init_pos.x = (gr.right - gr.left) / 2; 
+		_snake_init_pos.y = (gr.bottom - gr.top) / 2; 
+
+ 		if (!_snake.getSize()) return;
 		_snake.reset(adjustedPosition(_snake_init_pos, _snake.getHead()));
 		placeBait();
+		setCurrentState(dstGameState);
 	}
 
 	void update() {
@@ -563,7 +574,6 @@ public:
 			default:
 				break;
 		}
-		
 	}
 
 	void update_Landing() {
@@ -598,12 +608,11 @@ public:
 			const SnakeBody& b = _snake._body[i];
 			if (h.isCollided(b)) return true; 
 		}
-		RECT cr;
-		GetClientRect(hWnd, &cr);
+		RECT gr = gameRect();
 
 		if (_snake._currentDirection == Direction::N || _snake._currentDirection == Direction::W)
-			return !PtInRect(&cr, _snake.getPos());
-		return !PtInRect(&cr, _snake.getNextPos());
+			return !PtInRect(&gr, _snake.getPos());
+		return !PtInRect(&gr, _snake.getNextPos());
 	}
 
 	bool isValidBait(const Bait& bait_) const {
@@ -611,8 +620,9 @@ public:
 			bait_.hitBox().right,
 			bait_.hitBox().bottom
 		};
-		RECT gr;
-		GetClientRect(hWnd, &gr);
+		
+		RECT gr = gameRect();
+		
 		if (!PtInRect(&gr, rb_pt)) 
 			return false;
 
@@ -624,15 +634,13 @@ public:
 	}
 
 	void placeBaitWithType(Bait& bait_) {
-		RECT cr;
+		RECT gr = gameRect();
 		int upperLimit = 1000;
-
-		GetClientRect(hWnd, &cr);
 		POINT randomPoint{ 0, 0 };
 		
 		
 		for (int c = 0; c < upperLimit; c++) {
-			randomPoint = Util::getRandomPointInRect(cr);
+			randomPoint = Util::getRandomPointInRect(gr);
 			randomPoint = adjustedPosition(randomPoint, _bait);
 			_bait.setPos(randomPoint);
 			if (isValidBait(_bait)) return;

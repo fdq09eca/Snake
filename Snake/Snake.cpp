@@ -100,13 +100,13 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
+   g.gameLayout.init();
+   POINT wnd_init_pos{ 500, 200 };
+   int cr_w = g.gameLayout.clientRect.width;
+   int cr_h = g.gameLayout.clientRect.height;
 
-   const int winWidth = 615; // why.., i wanted a squre clientRect. try: AdjustWindowRect?
-   const int winHeight = 630;
-   const int screenMidX = GetSystemMetrics(SM_CXSCREEN) / 2 - winWidth/2;
-   const int screenMidY = GetSystemMetrics(SM_CYSCREEN) / 2 - winHeight/2;
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-       screenMidX, screenMidY, winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
+       wnd_init_pos.x, wnd_init_pos.y, cr_w, cr_h, nullptr, nullptr, hInstance, nullptr);
    // TODO: create a button for practice purpose?
    
    if (!hWnd) { return FALSE; }
