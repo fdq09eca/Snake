@@ -101,7 +101,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
    g.gameLayout.init();
-   POINT wnd_init_pos{ 500, 200 };
+   POINT wnd_init_pos{ 0, 0 };
    int cr_w = g.gameLayout.clientRect.width;
    int cr_h = g.gameLayout.clientRect.height;
 

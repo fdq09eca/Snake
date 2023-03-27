@@ -439,15 +439,15 @@ struct LayoutBox {
 		return r;
 	}
 
-	LayoutBox hCombine(LayoutBox r) {
-		r.pos.x = pos.x + height; // to right
-		
-		LayoutBox lr;
-		lr.pos = pos;
-		lr.width = r.width + width;
-		lr.height = max(r.height, height);
-		return lr;
-	}
+	//LayoutBox hCombine(LayoutBox r) {
+	//	r.pos.x = pos.x + height; // to right
+	//	
+	//	LayoutBox lr;
+	//	lr.pos = pos;
+	//	lr.width = r.width + width;
+	//	lr.height = max(r.height, height);
+	//	return lr;
+	//}
 
 	LayoutBox vCombine(LayoutBox& r) {
 		r.pos.y = pos.y + height; // to below
@@ -494,7 +494,7 @@ struct GameLayout {
 		initUiRect(ui_h);
 		clientRect = uiRect.vCombine(gameRect);
 		RECT cr = clientRect.rect();
-		AdjustWindowRect(&cr, wnd_style, false);
+		AdjustWindowRect(&cr, wnd_style, true);
 		clientRect.width = cr.right - cr.left;
 		clientRect.height = cr.bottom - cr.top;
 	}
@@ -519,6 +519,7 @@ private:
 	HWND hWnd = NULL;
 	HDC srcDC = NULL;
 	bool _isPause = false;
+	int score = 0;
 	
 	Sprite _landingSprite;
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
@@ -553,13 +554,13 @@ public:
 	RECT uiRect() const { return gameLayout.getUiRect(); }
 
 	void restart(GameState dstGameState = GameState::Landing) {
+
 		RECT gr = gameRect();
 		_snake_init_pos.x = (gr.right - gr.left) / 2; 
 		_snake_init_pos.y = (gr.bottom - gr.top) / 2; 
-
- 		if (!_snake.getSize()) return;
-		_snake.reset(adjustedPosition(_snake_init_pos, _snake.getHead()));
+ 		_snake.reset(adjustedPosition(_snake_init_pos, _snake.getHead()));
 		placeBait();
+		score = 0;
 		setCurrentState(dstGameState);
 	}
 
@@ -595,6 +596,7 @@ public:
 		
 		if (_snake.getHead().isCollided(_bait)) {
 			_snake.grow(1);
+			score++;
 			placeBait();
 		}
 		
@@ -672,8 +674,13 @@ public:
 		}
 	}
 
+	
+
 	void drawGamePlay(HDC hdc_) const {
 		gameLayout.draw(hdc_);
+		RECT ur = uiRect();
+		std::wstring uiMessage = L"score: " + std::to_wstring(score) + L"Game Time: hh:mm:ss";
+		Painter::drawMessage(hWnd, hdc_, uiMessage.data(), ur, RGB(255, 255, 255), RGB(0, 0, 0));
 		_snake.draw(hdc_, _snakeHeadColor, _snakeBodyColor);
 		_bait.draw(hdc_);
 		if (_isPause) { drawPause(hdc_); }
