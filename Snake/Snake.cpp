@@ -100,7 +100,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
-   g.gameLayout.init();
+   g.gameLayout.init(30, 20, WS_OVERLAPPEDWINDOW);
    POINT wnd_init_pos{ 0, 0 };
    int cr_w = g.gameLayout.clientRect.width;
    int cr_h = g.gameLayout.clientRect.height;

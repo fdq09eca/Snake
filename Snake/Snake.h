@@ -558,7 +558,8 @@ public:
 		RECT gr = gameRect();
 		_snake_init_pos.x = (gr.right - gr.left) / 2; 
 		_snake_init_pos.y = (gr.bottom - gr.top) / 2; 
- 		_snake.reset(adjustedPosition(_snake_init_pos, _snake.getHead()));
+		POINT adjPos = adjustedPosition(_snake_init_pos, _snake.getHead());
+ 		_snake.reset(adjPos);
 		placeBait();
 		score = 0;
 		setCurrentState(dstGameState);
