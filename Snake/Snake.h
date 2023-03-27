@@ -725,8 +725,7 @@ public:
 
 	
 	void drawPause(HDC hdc_) const {
-		RECT cr;
-		GetClientRect(hWnd, &cr);
+		RECT cr = gameLayout.clientRect.rect();
 		Painter::drawMessage(hWnd, hdc_, L"Pause", cr, RGB(127, 127, 127), RGB(0, 0, 0));
 		cr.top += (cr.bottom - cr.top) / 4;
 		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> to resume", cr, RGB(127, 127, 127), RGB(0, 0, 0));
@@ -737,8 +736,7 @@ public:
 	void drawGameOver(HDC hdc_) const {
 		drawGamePlay(hdc_);
 		
-		RECT cr;
-		GetClientRect(hWnd, &cr);
+		RECT cr = gameLayout.clientRect.rect();
 		Painter::drawMessage(hWnd, hdc_, L"Game Over", cr, RGB(255, 0, 0), RGB(255, 255, 255));
 		cr.top += (cr.bottom - cr.top) / 3;
 		Painter::drawMessage(hWnd, hdc_, L"Press <SPACE> To continue", cr, RGB(127, 127, 127), RGB(0, 0, 0));
@@ -749,8 +747,7 @@ public:
 
 	void drawRanking(HDC hdc_) const {
 		
-		RECT cr;
-		GetClientRect(hWnd, &cr);
+		RECT cr = gameLayout.clientRect.rect();
 		Painter::drawMessage(hWnd, hdc_, L"Ranking here.", cr, RGB(127, 127, 127), RGB(0, 0, 0));
 	}
 };
