@@ -105,8 +105,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    int cr_w = g.gameLayout.clientRect.width;
    int cr_h = g.gameLayout.clientRect.height;
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-       wnd_init_pos.x, wnd_init_pos.y, cr_w, cr_h, nullptr, nullptr, hInstance, nullptr);
+   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW, wnd_init_pos.x, wnd_init_pos.y, cr_w, cr_h, nullptr, nullptr, hInstance, nullptr);
    // TODO: create a button for practice purpose?
    
    if (!hWnd) { return FALSE; }

@@ -171,19 +171,19 @@ public:
 		DeleteObject(tPen);
 	}
 
-	static void drawMessage(HWND hWnd_, HDC hdc_, const wchar_t* s, RECT rect_, COLORREF bgColor = TRANSPARENT, COLORREF textColor = RGB(0, 0, 0), int fontSize = NULL) {
+	static void drawMessage(HWND hWnd_, HDC hdc_, const wchar_t* s, RECT rect_, COLORREF bgColor = TRANSPARENT, COLORREF textColor = RGB(0, 0, 0), int fontSize = NULL, UINT format = DT_CENTER | DT_VCENTER | DT_SINGLELINE) {
 		SetTextColor(hdc_, textColor);
 		SetBkColor(hdc_, bgColor);
 		if (fontSize) {
 			int savedDC = SaveDC(hdc_);
 			HFONT hf = CreateFont(/*size=*/-fontSize, 0, 0, 0, FW_NORMAL, 0, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, L"MS Sans Serif");
 			SelectObject(hdc_, hf);
-			DrawText(hdc_, s, (int)wcslen(s), &rect_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			DrawText(hdc_, s, (int)wcslen(s), &rect_, format);
 			DeleteObject(hf);
 			RestoreDC(hdc_, savedDC);
 		}
 		else {
-			DrawText(hdc_, s, (int)wcslen(s), &rect_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			DrawText(hdc_, s, (int)wcslen(s), &rect_, format);
 		}
 	}
 
@@ -294,7 +294,7 @@ class Snake : GameObject
 	size_t _init_body_size = 3;
 	Direction _currentDirection = Direction::N;
 	size_t _speed = 100;
-	bool _canSetDirection = false;
+	bool _canSetDirection = true; // prevent setDirection more than 1 per update;
 
 	void init(const int x_, const int y_) {
 		if (_init_body_size == 0) { throw std::exception("init_size must be > 0"); }
@@ -318,7 +318,7 @@ public:
 		GameObject::reset();
 		clear_body();
 		init(pos_.x, pos_.y);
-		_canSetDirection = false;
+		_canSetDirection = true;
 	}
 
 	size_t getSpeed() { return _speed; }
@@ -439,18 +439,8 @@ struct LayoutBox {
 		return r;
 	}
 
-	//LayoutBox hCombine(LayoutBox r) {
-	//	r.pos.x = pos.x + height; // to right
-	//	
-	//	LayoutBox lr;
-	//	lr.pos = pos;
-	//	lr.width = r.width + width;
-	//	lr.height = max(r.height, height);
-	//	return lr;
-	//}
-
 	LayoutBox vCombine(LayoutBox& r) {
-		r.pos.y = pos.y + height; // to below
+		r.pos.y = pos.y + height; // below
 		
 		LayoutBox lr;
 		lr.pos = pos;
@@ -468,7 +458,6 @@ struct LayoutBox {
 		SelectObject(hdc_, pen);
 		SelectObject(hdc_, GetStockObject(NULL_BRUSH));
 		Rectangle(hdc_, r.left, r.top, r.right, r.bottom);
-		
 		RestoreDC(hdc_, savedDc);
 	}
 };
@@ -520,6 +509,7 @@ private:
 	HDC srcDC = NULL;
 	bool _isPause = false;
 	int score = 0;
+	time_t gameStart;
 	
 	Sprite _landingSprite;
 	COLORREF _snakeHeadColor = RGB(255, 0, 0); // red head
@@ -554,7 +544,7 @@ public:
 	RECT uiRect() const { return gameLayout.getUiRect(); }
 
 	void restart(GameState dstGameState = GameState::Landing) {
-
+		gameStart = time(nullptr);
 		RECT gr = gameRect();
 		_snake_init_pos.x = (gr.right - gr.left) / 2; 
 		_snake_init_pos.y = (gr.bottom - gr.top) / 2; 
@@ -563,6 +553,15 @@ public:
 		placeBait();
 		score = 0;
 		setCurrentState(dstGameState);
+	}
+
+	void getGameDuration(wchar_t* const buff) const {
+		if (!buff) return;
+		int n_s   = (int) (time(nullptr) - gameStart);
+		int n_min = (int) n_s / 60;
+		n_s %= 60;
+		char c = n_s % 2 ? ' ' : ':'; // flashing
+		swprintf(buff, 20, L"%02d%c%02d", n_min, c, n_s);
 	}
 
 	void update() {
@@ -679,12 +678,25 @@ public:
 
 	void drawGamePlay(HDC hdc_) const {
 		gameLayout.draw(hdc_);
-		RECT ur = uiRect();
-		std::wstring uiMessage = L"score: " + std::to_wstring(score) + L"Game Time: hh:mm:ss";
-		Painter::drawMessage(hWnd, hdc_, uiMessage.data(), ur, RGB(255, 255, 255), RGB(0, 0, 0));
+		drawGamePlayUi(hdc_);
 		_snake.draw(hdc_, _snakeHeadColor, _snakeBodyColor);
 		_bait.draw(hdc_);
 		if (_isPause) { drawPause(hdc_); }
+	}
+
+	void drawGamePlayUi(const HDC& hdc_) const
+	{
+		RECT ur = uiRect();
+		int xoffset = 10;
+		ur.left += xoffset;
+		ur.right -= xoffset;
+		wchar_t s[20] = { 0 };
+		getGameDuration(s);
+		std::wstring ws_score = L"Score: " + std::to_wstring(score);
+		std::wstring ws_gtime = s;
+
+		Painter::drawMessage(hWnd, hdc_, ws_score.data(), ur, RGB(127, 255, 127), RGB(0, 0, 0), NULL, DT_VCENTER | DT_SINGLELINE | DT_LEFT);
+		Painter::drawMessage(hWnd, hdc_, ws_gtime.data(), ur, RGB(127, 127, 127), RGB(0, 0, 0), NULL, DT_VCENTER | DT_SINGLELINE | DT_RIGHT);
 	}
 
 	void togglePause() { _isPause = !_isPause; }
@@ -701,8 +713,9 @@ public:
 			case GameState::Landing:		{ setCurrentState(GameState::GamePlay); }	break;
 			case GameState::GamePlay:		{ togglePause();						}   break;
 			case GameState::GameOver:{ 
-				setCurrentState(GameState::Ranking); 
-				InvalidateRect(hWnd, nullptr, true);	
+				restart(); // remove Ranking..
+				//setCurrentState(GameState::Ranking); 
+				//InvalidateRect(hWnd, nullptr, true);
 			} break;
 			case GameState::Ranking:		{ restart();							}	break;
 			case GameState::None:			{ assert(false && "GameState::None");	}	break;
