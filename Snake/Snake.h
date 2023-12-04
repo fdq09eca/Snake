@@ -25,7 +25,7 @@ public:
 		int result = GetObject(_bitmap, sizeof(_info), &_info);
 		if (result <= 0) {
 			auto e = GetLastError();
-	
+			return;
 		}
 	}
 
